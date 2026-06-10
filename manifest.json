@@ -1,0 +1,12 @@
+{
+  "background_color": "#0a0a0f",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "Smart Alarm Clock Pro",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "Alarm Pro",
+  "start_url": "/",
+  "theme_color": "#7c6dfa",
+  "description": "All-in-one Smart Alarm Clock with Namaz times, Qibla, Hadith, Weather and more!"
+}
