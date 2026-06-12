@@ -325,6 +325,10 @@ body{background:var(--bg);color:var(--tx);font-family:'Poppins',sans-serif;max-w
     <div class="ctitle">🕌 Namaz Times — Karachi</div>
     <div class="ngrid" id="namazGrid"></div>
   </div>
+  <div id="notifBanner" style="display:none;background:rgba(124,109,250,0.15);border:1px solid var(--ac);border-radius:12px;padding:10px 13px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
+    <div style="font-size:12px;color:var(--ac)">🔔 Enable notifications for alarms!</div>
+    <button onclick="enableNotifs()" style="background:var(--ac);border:none;border-radius:8px;padding:6px 12px;color:#fff;font-size:11px;font-family:'Poppins',sans-serif;cursor:pointer">Allow</button>
+  </div>
   <button class="abtn" onclick="openModal('alarmModal')">+ Add New Alarm</button>
   <div class="stitle" id="myAlarmsTitle">MY ALARMS</div>
   <div id="alarmList"></div>
@@ -930,6 +934,7 @@ body{background:var(--bg);color:var(--tx);font-family:'Poppins',sans-serif;max-w
         <div class="wpbtn" onclick="selWP(this,6)" style="background:linear-gradient(135deg,#0d2a2a,#103a3a)"></div>
         <div class="wpbtn" onclick="selWP(this,7)" style="background:linear-gradient(135deg,#2a1a0d,#3a2a10)"></div>
       </div>
+      <div id="wpPreview" style="height:28px;border-radius:8px;margin-top:6px;background:linear-gradient(135deg,#1a103a,#0a0a1f);transition:background .3s;display:flex;align-items:center;justify-content:center;font-size:10px;color:rgba(255,255,255,0.5)">Preview</div>
     </div>
     <div style="display:flex;gap:14px;margin-top:4px">
       <div class="fg" style="flex:1;margin-bottom:0"><label>Fade In</label><div class="tog on" id="fadeT" onclick="this.classList.toggle('on')" style="margin-top:4px"></div></div>
@@ -1101,6 +1106,101 @@ var water=parseInt(localStorage.getItem('sacp_wt')||'0');
 var tbLog=JSON.parse(localStorage.getItem('sacp_tb')||'[]');
 var pomoSessions=parseInt(localStorage.getItem('sacp_ps')||'0');
 var curRT='azan',curWP=0,mathAns=0,curAlarm=null,lightMode=false;
+
+// ===== WALLPAPER BACKGROUNDS =====
+var wpBgs=[
+  'linear-gradient(135deg,#1a103a,#0a0a1f)',
+  'linear-gradient(135deg,#0d2a1a,#1a3a10)',
+  'linear-gradient(135deg,#2a0d1a,#1a0a10)',
+  'linear-gradient(135deg,#0d1a2a,#1a2a3a)',
+  'linear-gradient(135deg,#2a2a0d,#3a3a10)',
+  'linear-gradient(135deg,#1a0d2a,#2a103a)',
+  'linear-gradient(135deg,#0d2a2a,#103a3a)',
+  'linear-gradient(135deg,#2a1a0d,#3a2a10)',
+];
+
+// ===== NOTIFICATIONS SETUP =====
+function requestNotificationPermission(){
+  if('Notification' in window && Notification.permission==='default'){
+    Notification.requestPermission();
+  }
+}
+requestNotificationPermission();
+
+function showNotification(title, body, icon){
+  if('Notification' in window && Notification.permission==='granted'){
+    try{
+      new Notification(title,{body:body,icon:icon||'icon-192.png',badge:'icon-192.png',vibrate:[500,200,500]});
+    }catch(e){}
+  }
+}
+
+// ===== ALARM SOUND =====
+var alarmInterval=null;
+var alarmAudio=null;
+
+function playAlarmSound(soundType){
+  stopAlarmSound();
+  try{
+    var ctx=new(window.AudioContext||window.webkitAudioContext)();
+    var play=function(){
+      if(soundType==='azan'||soundType==='gentle'){
+        // Melodic pattern
+        var notes=[440,494,523,587,659,587,523,494,440];
+        notes.forEach(function(freq,i){
+          var o=ctx.createOscillator(),g=ctx.createGain();
+          o.connect(g);g.connect(ctx.destination);
+          o.frequency.value=freq;
+          o.type=soundType==='gentle'?'sine':'triangle';
+          g.gain.setValueAtTime(0,ctx.currentTime+i*0.3);
+          g.gain.linearRampToValueAtTime(0.4,ctx.currentTime+i*0.3+0.1);
+          g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+i*0.3+0.5);
+          o.start(ctx.currentTime+i*0.3);
+          o.stop(ctx.currentTime+i*0.3+0.5);
+        });
+      } else if(soundType==='digital'){
+        for(var i=0;i<5;i++){
+          var o=ctx.createOscillator(),g=ctx.createGain();
+          o.connect(g);g.connect(ctx.destination);
+          o.frequency.value=1000;o.type='square';
+          g.gain.setValueAtTime(0.3,ctx.currentTime+i*0.2);
+          g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+i*0.2+0.15);
+          o.start(ctx.currentTime+i*0.2);
+          o.stop(ctx.currentTime+i*0.2+0.15);
+        }
+      } else if(soundType==='nature'){
+        for(var i=0;i<3;i++){
+          var o=ctx.createOscillator(),g=ctx.createGain();
+          o.connect(g);g.connect(ctx.destination);
+          o.frequency.value=600+i*200;o.type='sine';
+          g.gain.setValueAtTime(0,ctx.currentTime+i*0.5);
+          g.gain.linearRampToValueAtTime(0.3,ctx.currentTime+i*0.5+0.2);
+          g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+i*0.5+0.8);
+          o.start(ctx.currentTime+i*0.5);
+          o.stop(ctx.currentTime+i*0.5+0.8);
+        }
+      } else {
+        // Bell / Fanfare
+        var freqs=[523,659,784,1047];
+        freqs.forEach(function(freq,i){
+          var o=ctx.createOscillator(),g=ctx.createGain();
+          o.connect(g);g.connect(ctx.destination);
+          o.frequency.value=freq;o.type='sine';
+          g.gain.setValueAtTime(0.4,ctx.currentTime+i*0.15);
+          g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+i*0.15+0.4);
+          o.start(ctx.currentTime+i*0.15);
+          o.stop(ctx.currentTime+i*0.15+0.4);
+        });
+      }
+    };
+    play();
+    alarmInterval=setInterval(play,3000);
+  }catch(e){}
+}
+
+function stopAlarmSound(){
+  if(alarmInterval){clearInterval(alarmInterval);alarmInterval=null;}
+}
 var calDate=new Date();
 
 // ===== CLOCK =====
@@ -1167,7 +1267,22 @@ function go(name,tabEl,navId){
 }
 function goSettings(){go('settings',null,'n-settings')}
 
-// ===== NAMAZ =====
+// ===== NOTIFICATION PERMISSION =====
+function enableNotifs(){
+  if('Notification' in window){
+    Notification.requestPermission().then(function(p){
+      if(p==='granted'){
+        document.getElementById('notifBanner').style.display='none';
+        showNotification('✅ Notifications Enabled!','You will now receive alarm notifications.');
+      }
+    });
+  }
+}
+// Show notification banner if not granted
+if('Notification' in window && Notification.permission!=='granted'){
+  var nb=document.getElementById('notifBanner');
+  if(nb)nb.style.display='flex';
+}
 var namazData=[
   {n:'Fajr',i:'🌙',t:'05:15'},{n:'Dhuhr',i:'☀️',t:'12:30'},
   {n:'Asr',i:'🌤',t:'15:45'},{n:'Maghrib',i:'🌅',t:'18:20'},{n:'Isha',i:'⭐',t:'19:50'}
@@ -1201,8 +1316,15 @@ function renderAlarms(){
 function openModal(id){document.getElementById(id).classList.add('show')}
 function closeModal(id){document.getElementById(id).classList.remove('show')}
 function toggleD(btn){btn.classList.toggle('sel')}
-function selRT(el,rt){curRT=rt;document.querySelectorAll('.rtbtn').forEach(function(b){b.classList.remove('sel')});el.classList.add('sel');}
-function selWP(el,wp){curWP=wp;document.querySelectorAll('.wpbtn').forEach(function(b){b.classList.remove('sel')});el.classList.add('sel');}
+function selRT(el,rt){curRT=rt;document.querySelectorAll('.rtbtn').forEach(function(b){b.classList.remove('sel')});el.classList.add('sel');playAlarmSound(rt);setTimeout(stopAlarmSound,2000);}
+function selWP(el,wp){
+  curWP=wp;
+  document.querySelectorAll('.wpbtn').forEach(function(b){b.classList.remove('sel')});
+  el.classList.add('sel');
+  // Show preview
+  var prev=document.getElementById('wpPreview');
+  if(prev)prev.style.background=wpBgs[wp]||wpBgs[0];
+}
 function saveAlarm(){
   var tv=document.getElementById('aTime').value;
   var parts=tv.split(':'),hh=parseInt(parts[0]),mm=parseInt(parts[1]);
@@ -1216,14 +1338,71 @@ function togAlarm(i){alarms[i].on=!alarms[i].on;saveAlarms();}
 function delAlarm(i){alarms.splice(i,1);saveAlarms();}
 function checkAlarms(h12,m,ap){
   var day=new Date().getDay(),ts=pad(h12)+':'+pad(m);
-  alarms.forEach(function(a){if(a.on&&a.time===ts&&a.ampm===ap&&(a.days.length===0||a.days.includes(day)))ringAlarm(a);});
-  meds.forEach(function(med,i){
-    if(!med.taken&&med.raw){var mh=med.raw.h%12||12,map=med.raw.h>=12?'PM':'AM';
-    if(pad(mh)===pad(h12)&&med.raw.m===m&&map===ap){playBeep();alert('💊 Medicine: '+med.name+'\nDose: '+med.dose);}}
+  // Check alarms
+  alarms.forEach(function(a){
+    if(a.on&&a.time===ts&&a.ampm===ap&&(a.days.length===0||a.days.includes(day)))ringAlarm(a);
   });
+  // Medicine reminders
+  meds.forEach(function(med){
+    if(!med.taken&&med.raw){
+      var mh=med.raw.h%12||12,map=med.raw.h>=12?'PM':'AM';
+      if(pad(mh)===pad(h12)&&med.raw.m===m&&map===ap){
+        ringSpecial('💊 Medicine Time!',med.name+'\nDose: '+(med.dose||'1 tablet')+(med.notes?'\n'+med.notes:''),'bell');
+      }
+    }
+  });
+  // Birthday check (8 AM)
+  if(h12===8&&m===0&&ap==='AM'){
+    var today=new Date();
+    bdays.forEach(function(b){
+      var bd=new Date(b.date);
+      if(bd.getDate()===today.getDate()&&bd.getMonth()===today.getMonth()){
+        ringSpecial('🎂 Happy Birthday!',b.name+'\'s Birthday Today!\nRelation: '+b.rel,'fanfare');
+      }
+    });
+    // Anniversary
+    anniversaries.forEach(function(a){
+      var ad=new Date(a.date);
+      if(ad.getDate()===today.getDate()&&ad.getMonth()===today.getMonth()){
+        ringSpecial('💍 Anniversary!',a.title+'\nHappy Anniversary! 🎉','fanfare');
+      }
+    });
+  }
+  // Meeting reminders
+  meets.forEach(function(mt){
+    if(mt.raw){
+      var alertMins=parseInt(mt.alert)||5;
+      var meetTime=(mt.raw.h*60+mt.raw.m);
+      var curTime=(new Date().getHours()*60+new Date().getMinutes());
+      if(curTime===meetTime-alertMins){
+        ringSpecial('📹 Meeting Soon!',mt.title+'\nPlatform: '+mt.plat+'\nStarting in '+alertMins+' min!','digital');
+      }
+    }
+  });
+}
+
+function ringSpecial(title, message, sound){
+  // Show full alarm screen for medicine/birthday/anniversary/meeting
+  document.getElementById('ringOv').style.background='linear-gradient(135deg,#1a103a,#0a0a1f)';
+  document.getElementById('rTime').textContent=title;
+  document.getElementById('rLbl').textContent=message;
+  document.getElementById('rDua').textContent='';
+  document.getElementById('mathBox').style.display='none';
+  document.getElementById('rQuote').textContent='';
+  document.getElementById('ringOv').classList.add('show');
+  showNotification(title, message);
+  playAlarmSound(sound||'bell');
+  if(navigator.vibrate)navigator.vibrate([500,200,500]);
+  // Re-show math box for next alarm
+  setTimeout(function(){
+    document.getElementById('mathBox').style.display='block';
+  }, 100);
 }
 function ringAlarm(a){
   curAlarm=a;
+  // Set wallpaper background
+  var bg=wpBgs[a.wp||0];
+  document.getElementById('ringOv').style.background=bg||'rgba(0,0,0,0.96)';
   document.getElementById('rTime').textContent=a.time+' '+a.ampm;
   document.getElementById('rLbl').textContent=a.label||'Alarm';
   var duas=['بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّحِيْمِ','اَلْحَمْدُ لِلّٰهِ الَّذِيْ أَحْيَانَا','سُبْحَانَ اللّٰهِ وَبِحَمْدِهِ'];
@@ -1232,8 +1411,12 @@ function ringAlarm(a){
   document.getElementById('mathAns').value='';
   document.getElementById('rQuote').textContent='"'+quotes[Math.floor(Math.random()*quotes.length)].en+'"';
   document.getElementById('ringOv').classList.add('show');
-  playBeep();
-  if(a.vib&&navigator.vibrate)navigator.vibrate([500,200,500,200,500]);
+  // Show notification
+  showNotification('⏰ '+( a.label||'Alarm'), a.time+' '+a.ampm+' — Time to wake up!');
+  // Play alarm sound
+  playAlarmSound(a.sound||'bell');
+  // Vibrate
+  if(a.vib&&navigator.vibrate)navigator.vibrate([500,200,500,200,500,200,500]);
 }
 function genMath(){
   var a=Math.floor(Math.random()*12)+1,b=Math.floor(Math.random()*12)+1;
@@ -1243,10 +1426,16 @@ function genMath(){
   return{q:q1+' '+op+' '+q2+' = ?',a:ans};
 }
 function checkMath(){if(parseInt(document.getElementById('mathAns').value)===mathAns)dismissAlarm();}
-function dismissAlarm(){document.getElementById('ringOv').classList.remove('show');curAlarm=null;}
+function dismissAlarm(){
+  document.getElementById('ringOv').classList.remove('show');
+  stopAlarmSound();
+  curAlarm=null;
+}
 function snoozeAlarm(){
-  var a=curAlarm;dismissAlarm();
+  var a=curAlarm;
+  dismissAlarm();
   if(a)setTimeout(function(){ringAlarm(a);},5*60*1000);
+  showNotification('😴 Snoozed!','Alarm will ring again in 5 minutes');
   alert('😴 Snoozed for 5 minutes!');
 }
 function playBeep(){
