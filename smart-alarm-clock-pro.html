@@ -357,10 +357,6 @@ body{background:var(--bg);color:var(--tx);font-family:'Poppins',sans-serif;max-w
     <div class="ctitle">🕌 Namaz Times — Karachi</div>
     <div class="ngrid" id="namazGrid"></div>
   </div>
-  <div id="notifBanner" style="display:none;background:rgba(124,109,250,0.15);border:1px solid var(--ac);border-radius:12px;padding:10px 13px;margin-bottom:10px;align-items:center;justify-content:space-between">
-    <div style="font-size:12px;color:var(--ac)">🔔 Enable notifications for alarms!</div>
-    <button onclick="enableNotifs()" style="background:var(--ac);border:none;border-radius:8px;padding:6px 12px;color:#fff;font-size:11px;font-family:'Poppins',sans-serif;cursor:pointer">Allow</button>
-  </div>
   <button class="abtn" onclick="openModal('alarmModal')">+ Add New Alarm</button>
   <div class="stitle" id="myAlarmsTitle">MY ALARMS</div>
   <div id="alarmList"></div>
@@ -1323,30 +1319,14 @@ function goSettings(){go('settings',null,'n-settings')}
 
 // ===== NOTIFICATION PERMISSION =====
 function enableNotifs(){
-  if('Notification' in window){
-    Notification.requestPermission().then(function(p){
-      var nb=document.getElementById('notifBanner');
-      if(nb)nb.style.display='none';
-      localStorage.setItem('sacp_nb_hidden','1');
-      if(p==='granted'){
-        showNotification('✅ Notifications Enabled!','You will now receive alarm notifications.');
-      }
-    });
+  if('Notification' in window && Notification.permission!=='granted'){
+    Notification.requestPermission();
   }
 }
-// Only show banner if never hidden before AND permission not granted
-setTimeout(function(){
-  var hidden=localStorage.getItem('sacp_nb_hidden');
-  var granted='Notification' in window && Notification.permission==='granted';
-  var nb=document.getElementById('notifBanner');
-  if(nb){
-    if(!hidden && !granted){
-      nb.style.display='flex';
-    } else {
-      nb.style.display='none';
-    }
-  }
-},500);
+// Request permission silently on first load
+if('Notification' in window && Notification.permission==='default'){
+  setTimeout(function(){Notification.requestPermission();},2000);
+}
 var namazData=[
   {n:'Fajr',i:'🌙',t:'05:15'},{n:'Dhuhr',i:'☀️',t:'12:30'},
   {n:'Asr',i:'🌤',t:'15:45'},{n:'Maghrib',i:'🌅',t:'18:20'},{n:'Isha',i:'⭐',t:'19:50'}
