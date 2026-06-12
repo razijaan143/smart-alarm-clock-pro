@@ -10,6 +10,22 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Alarm Pro">
 <meta name="description" content="All-in-one Smart Alarm Clock with Namaz times, Qibla, Hadith, Weather and more!">
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('/smart-alarm-clock-pro/sw.js')
+      .then(function(reg){
+        console.log('SW registered');
+        // Request notification permission
+        if('Notification' in window && Notification.permission === 'default'){
+          Notification.requestPermission();
+        }
+      }).catch(function(err){
+        console.log('SW error:', err);
+      });
+  });
+}
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#0a0a0f;--sur:#13131e;--sur2:#1c1c2e;--ac:#7c6dfa;--ac2:#fa6d9a;--ac3:#6dfacc;--tx:#e8e8ff;--mu:#6b6b8a;--br:rgba(124,109,250,0.18)}
