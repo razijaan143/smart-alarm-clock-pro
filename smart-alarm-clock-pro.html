@@ -986,7 +986,7 @@ body{background:var(--bg);color:var(--tx);font-family:'Poppins',sans-serif;max-w
     <h3>💊 New Medicine</h3>
     <div class="fg"><label>Medicine Name</label><input type="text" id="mName" placeholder="Panadol, Vitamin D..."></div>
     <div class="fg"><label>Dose</label><input type="text" id="mDose" placeholder="1 tablet, 5ml..."></div>
-    <div class="fg"><label>Time</label><input type="time" id="mTime" value="08:00"></div>
+    <div class="fg"><label>Time</label><input type="time" id="medTime" value="08:00"></div>
     <div class="fg"><label>Repeat Days</label>
       <div class="drow" id="mDays">
         <button class="dbtn2 sel" onclick="toggleD(this)">Su</button><button class="dbtn2 sel" onclick="toggleD(this)">Mo</button>
@@ -1684,12 +1684,29 @@ function renderMeds(){
   if(mbm){var pending=meds.filter(function(m){return!m.taken;});mbm.innerHTML=pending.length?pending.map(function(m){return'<div style="padding:5px 0;border-bottom:1px solid var(--br);font-size:12px">💊 '+m.name+' — '+m.dtime+'</div>';}).join(''):'<div style="color:var(--mu);font-size:12px">All medicines taken today! ✅</div>';}
 }
 function saveMed(){
-  var name=document.getElementById('mName').value.trim();if(!name){alert('Medicine ka naam likhein!');return;}
-  var tv=document.getElementById('mTime').value,hh=parseInt(tv.split(':')[0]),mm=parseInt(tv.split(':')[1]);
+  var name=document.getElementById('mName').value.trim();
+  if(!name){alert('Medicine ka naam likhein!');return;}
+  var tv=document.getElementById('medTime').value;
+  if(!tv){alert('Time select karein!');return;}
+  var hh=parseInt(tv.split(':')[0]),mm=parseInt(tv.split(':')[1]);
   var ap=hh>=12?'PM':'AM',h12=hh%12||12;
-  var days=[];document.querySelectorAll('#mDays .dbtn2').forEach(function(b,i){if(b.classList.contains('sel'))days.push(i);});
-  meds.push({name:name,dose:document.getElementById('mDose').value||'1 tablet',dtime:pad(h12)+':'+pad(mm)+' '+ap,raw:{h:hh,m:mm},days:days,notes:document.getElementById('mNotes').value,taken:false});
-  saveMeds();closeModal('medModal');document.getElementById('mName').value='';document.getElementById('mDose').value='';document.getElementById('mNotes').value='';
+  var days=[];
+  document.querySelectorAll('#mDays .dbtn2').forEach(function(b,i){if(b.classList.contains('sel'))days.push(i);});
+  meds.push({
+    name:name,
+    dose:document.getElementById('mDose').value||'1 tablet',
+    dtime:pad(h12)+':'+pad(mm)+' '+ap,
+    raw:{h:hh,m:mm},
+    days:days,
+    notes:document.getElementById('mNotes').value,
+    taken:false
+  });
+  saveMeds();
+  closeModal('medModal');
+  document.getElementById('mName').value='';
+  document.getElementById('mDose').value='';
+  document.getElementById('mNotes').value='';
+  document.getElementById('medTime').value='08:00';
 }
 function takeMed(i){meds[i].taken=!meds[i].taken;if(meds[i].taken)playBeep();saveMeds();}
 function skipMed(i){meds[i].taken=false;saveMeds();}
