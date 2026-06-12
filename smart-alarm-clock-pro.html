@@ -1326,16 +1326,21 @@ function enableNotifs(){
   if('Notification' in window){
     Notification.requestPermission().then(function(p){
       if(p==='granted'){
-        document.getElementById('notifBanner').style.display='none';
+        var nb=document.getElementById('notifBanner');
+        if(nb)nb.style.display='none';
+        localStorage.setItem('sacp_notif','granted');
         showNotification('✅ Notifications Enabled!','You will now receive alarm notifications.');
       }
     });
   }
 }
-// Show notification banner if not granted
-if('Notification' in window && Notification.permission!=='granted'){
+// Show notification banner only if not already granted
+if('Notification' in window && Notification.permission!=='granted' && localStorage.getItem('sacp_notif')!=='granted'){
   var nb=document.getElementById('notifBanner');
   if(nb)nb.style.display='flex';
+} else {
+  var nb=document.getElementById('notifBanner');
+  if(nb)nb.style.display='none';
 }
 var namazData=[
   {n:'Fajr',i:'🌙',t:'05:15'},{n:'Dhuhr',i:'☀️',t:'12:30'},
