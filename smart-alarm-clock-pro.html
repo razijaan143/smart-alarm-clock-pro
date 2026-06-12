@@ -16,13 +16,29 @@ if('serviceWorker' in navigator){
     navigator.serviceWorker.register('/smart-alarm-clock-pro/sw.js')
       .then(function(reg){
         console.log('SW registered');
-        // Request notification permission
         if('Notification' in window && Notification.permission === 'default'){
           Notification.requestPermission();
         }
       }).catch(function(err){
         console.log('SW error:', err);
       });
+    // Listen for messages from SW
+    navigator.serviceWorker.addEventListener('message', function(event) {
+      if (event.data && event.data.type === 'SW_CHECK_ALARMS') {
+        // SW asking us to check alarms
+        var now = new Date();
+        var h = now.getHours(), m = now.getMinutes();
+        var ap = h >= 12 ? 'PM' : 'AM';
+        var h12 = h % 12 || 12;
+        checkAlarms(h12, m, ap);
+      }
+      if (event.data && event.data.type === 'SNOOZE') {
+        snoozeAlarm();
+      }
+      if (event.data && event.data.type === 'DISMISS') {
+        dismissAlarm();
+      }
+    });
   });
 }
 </script>
@@ -1154,14 +1170,36 @@ function showNotification(title, body, icon){
 // ===== ALARM SOUND =====
 var alarmInterval=null;
 var alarmAudio=null;
+var wakeLock=null;
+
+// ===== WAKE LOCK - Screen on rakhega =====
+async function requestWakeLock(){
+  try{
+    if('wakeLock' in navigator){
+      wakeLock=await navigator.wakeLock.request('screen');
+    }
+  }catch(e){}
+}
+function releaseWakeLock(){
+  try{if(wakeLock){wakeLock.release();wakeLock=null;}}catch(e){}
+}
+// Re-acquire wake lock when tab becomes visible
+document.addEventListener('visibilitychange',function(){
+  if(wakeLock!==null&&document.visibilityState==='visible'){requestWakeLock();}
+});
 
 function playAlarmSound(soundType){
   stopAlarmSound();
+  // Request wake lock to keep screen on
+  requestWakeLock();
   try{
     var ctx=new(window.AudioContext||window.webkitAudioContext)();
+    // Resume context if suspended (important for mobile)
+    if(ctx.state==='suspended'){ctx.resume();}
     var play=function(){
+      // Re-resume context each time (mobile browsers suspend it)
+      if(ctx.state==='suspended'){ctx.resume();}
       if(soundType==='azan'||soundType==='gentle'){
-        // Melodic pattern
         var notes=[440,494,523,587,659,587,523,494,440];
         notes.forEach(function(freq,i){
           var o=ctx.createOscillator(),g=ctx.createGain();
@@ -1169,17 +1207,17 @@ function playAlarmSound(soundType){
           o.frequency.value=freq;
           o.type=soundType==='gentle'?'sine':'triangle';
           g.gain.setValueAtTime(0,ctx.currentTime+i*0.3);
-          g.gain.linearRampToValueAtTime(0.4,ctx.currentTime+i*0.3+0.1);
+          g.gain.linearRampToValueAtTime(0.5,ctx.currentTime+i*0.3+0.1);
           g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+i*0.3+0.5);
           o.start(ctx.currentTime+i*0.3);
           o.stop(ctx.currentTime+i*0.3+0.5);
         });
       } else if(soundType==='digital'){
-        for(var i=0;i<5;i++){
+        for(var i=0;i<6;i++){
           var o=ctx.createOscillator(),g=ctx.createGain();
           o.connect(g);g.connect(ctx.destination);
           o.frequency.value=1000;o.type='square';
-          g.gain.setValueAtTime(0.3,ctx.currentTime+i*0.2);
+          g.gain.setValueAtTime(0.5,ctx.currentTime+i*0.2);
           g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+i*0.2+0.15);
           o.start(ctx.currentTime+i*0.2);
           o.stop(ctx.currentTime+i*0.2+0.15);
@@ -1190,19 +1228,18 @@ function playAlarmSound(soundType){
           o.connect(g);g.connect(ctx.destination);
           o.frequency.value=600+i*200;o.type='sine';
           g.gain.setValueAtTime(0,ctx.currentTime+i*0.5);
-          g.gain.linearRampToValueAtTime(0.3,ctx.currentTime+i*0.5+0.2);
+          g.gain.linearRampToValueAtTime(0.4,ctx.currentTime+i*0.5+0.2);
           g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+i*0.5+0.8);
           o.start(ctx.currentTime+i*0.5);
           o.stop(ctx.currentTime+i*0.5+0.8);
         }
       } else {
-        // Bell / Fanfare
         var freqs=[523,659,784,1047];
         freqs.forEach(function(freq,i){
           var o=ctx.createOscillator(),g=ctx.createGain();
           o.connect(g);g.connect(ctx.destination);
           o.frequency.value=freq;o.type='sine';
-          g.gain.setValueAtTime(0.4,ctx.currentTime+i*0.15);
+          g.gain.setValueAtTime(0.5,ctx.currentTime+i*0.15);
           g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+i*0.15+0.4);
           o.start(ctx.currentTime+i*0.15);
           o.stop(ctx.currentTime+i*0.15+0.4);
@@ -1216,6 +1253,7 @@ function playAlarmSound(soundType){
 
 function stopAlarmSound(){
   if(alarmInterval){clearInterval(alarmInterval);alarmInterval=null;}
+  releaseWakeLock();
 }
 var calDate=new Date();
 
@@ -1427,8 +1465,17 @@ function ringAlarm(a){
   document.getElementById('mathAns').value='';
   document.getElementById('rQuote').textContent='"'+quotes[Math.floor(Math.random()*quotes.length)].en+'"';
   document.getElementById('ringOv').classList.add('show');
-  // Show notification
-  showNotification('⏰ '+( a.label||'Alarm'), a.time+' '+a.ampm+' — Time to wake up!');
+  // Show notification via SW (works in background)
+  if('serviceWorker' in navigator && navigator.serviceWorker.controller){
+    navigator.serviceWorker.controller.postMessage({
+      type: 'ALARM_RING',
+      label: a.label||'Alarm',
+      time: a.time,
+      ampm: a.ampm
+    });
+  } else {
+    showNotification('⏰ '+(a.label||'Alarm!'), a.time+' '+a.ampm+' — Time to wake up!');
+  }
   // Play alarm sound
   playAlarmSound(a.sound||'bell');
   // Vibrate
