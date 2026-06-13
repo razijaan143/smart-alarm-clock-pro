@@ -105,5 +105,54 @@ self.addEventListener('notificationclick', function(event) {
       }
       return clients.openWindow('/smart-alarm-clock-pro/smart-alarm-clock-pro.html');
     })
+  );// Firebase Cloud Messaging Background Handling
+importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
+
+firebase.initializeApp({
+  apiKey: "AIzaSyDJfedjB-FL4AA9901hrvpfDF_4jQZEU1c",
+  authDomain: "smart-alarm-pro.firebaseapp.com",
+  projectId: "smart-alarm-pro",
+  storageBucket: "smart-alarm-pro.firebasestorage.app",
+  messagingSenderId: "4559379351038",
+  appId: "1:459379351038:web:9739875551b59c55d8b4af"
+});
+
+const messaging = firebase.messaging();
+
+// Jab background mein alarm ya notification aaye
+messaging.onBackgroundMessage((payload) => {
+  console.log('Background message received: ', payload);
+  
+  const notificationTitle = payload.notification.title || 'Alarm!';
+  const notificationOptions = {
+    body: payload.notification.body || 'Uthien, alarm ka waqt ho gaya hai.',
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    tag: 'alarm-notification',
+    requireInteraction: true, // Jab tak user cut na kare notification rahe
+    vibrate: [500, 110, 500, 110, 450, 110, 200, 110, 170, 40, 450, 110, 200, 110, 170, 40], // Phone vibrate hoga
+    data: { url: '/' }
+  };
+
+  return self.registration.showNotification(notificationTitle, notificationOptions);
+});
+
+// Notification par click karne se app khulegi
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      for (var i = 0; i < windowClients.length; i++) {
+        var client = windowClients[i];
+        if (client.url === '/' && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow('/');
+      }
+    })
   );
+});
 });
