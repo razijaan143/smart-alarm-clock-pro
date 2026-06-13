@@ -1,26 +1,21 @@
 {
-  "background_color": "#0a0a0f",
-  "dir": "ltr",
-  "display": "standalone",
+  "short_name": "Smart Alarm",
   "name": "Smart Alarm Clock Pro",
-  "orientation": "any",
-  "scope": "/",
-  "short_name": "Alarm Pro",
-  "start_url": "/smart-alarm-clock-pro/index.html",
-  "theme_color": "#7c6dfa",
-  "description": "All-in-one Smart Alarm Clock with Namaz times, Qibla, Hadith, Weather and more!",
   "icons": [
     {
       "src": "icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "sizes": "192x192"
     },
     {
       "src": "icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    },
-    "gcm_sender_id": "103953800507"
+      "type": "image/png",
+      "sizes": "512x512"
     }
-  ]
+  ],
+  "start_url": "./index.html",
+  "background_color": "#7c6dfa",
+  "theme_color": "#7c6dfa",
+  "display": "standalone",
+  "orientation": "portrait"
 }
