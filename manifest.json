@@ -6,7 +6,7 @@
   "orientation": "any",
   "scope": "/",
   "short_name": "Alarm Pro",
-  "start_url": "/smart-alarm-clock-pro/smart-alarm-clock-pro.html",
+  "start_url": "/smart-alarm-clock-pro/index.html",
   "theme_color": "#7c6dfa",
   "description": "All-in-one Smart Alarm Clock with Namaz times, Qibla, Hadith, Weather and more!",
   "icons": [
