@@ -4,61 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <title>Smart Alarm Clock Pro</title>
-<link rel="manifest" href="./manifest.json?v=1">
+<link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#7c6dfa">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Alarm Pro">
 <meta name="description" content="All-in-one Smart Alarm Clock with Namaz times, Qibla, Hadith, Weather and more!">
-<!-- Firebase SDKs -->
-<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js"></script>
-
 <script>
-  // Firebase Configuration
-  const firebaseConfig = {
-    apiKey: "AIzaSyDJfedjB-FL4AA9901hrvpfDF_4jQZEU1c",
-    authDomain: "smart-alarm-pro.firebaseapp.com",
-    projectId: "smart-alarm-pro",
-    storageBucket: "smart-alarm-pro.firebasestorage.app",
-    messagingSenderId: "459379351038",
-    appId: "1:459379351038:web:9739875551b59c55d8b4af"
-  };
-
-  // Initialize Firebase
-  firebase.initializeApp(firebaseConfig);
-  const messaging = firebase.messaging();
-
-  // Notification Permission Request & Token Generation
-  function requestNotificationPermission() {
-    Notification.requestPermission().then((permission) => {
-      if (permission === 'granted') {
-        console.log('Notification permission granted.');
-        
-        // VAPID Key se token lena
-        messaging.getToken({ 
-          vapidKey: 'BOb4tvn0Rt8_ijF_2sq52HUKart-7g9w5rldxP60gtcpfN86mtCBnTadrLptS4WEGc6cQN2_qTPjkkh7PoV9uPI' 
-        }).then((currentToken) => {
-          if (currentToken) {
-            console.log('Firebase Device Token:', currentToken);
-          } else {
-            console.log('No registration token available.');
-          }
-        }).catch((err) => {
-          console.log('An error occurred while retrieving token. ', err);
-        });
-      } else {
-        console.log('Unable to get permission to notify.');
-      }
-    });
-  }
-
-  // App load hote hi permission mange
-  window.addEventListener('load', () => {
-    requestNotificationPermission();
-  });
-</script>
-  <script>
 if('serviceWorker' in navigator){
   window.addEventListener('load', function(){
     navigator.serviceWorker.register('/smart-alarm-clock-pro/sw.js')
